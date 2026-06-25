@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FP Tracker">
+<meta name="theme-color" content="#0a0a0a">
+<title>FP Tracker — 2-Step Pro $5k</title>
+<style>
+  :root {
+    --bg: #0f0f0f; --surface: #1a1a1a; --surface2: #242424; --border: rgba(255,255,255,0.08);
+    --text: #f0f0f0; --muted: #888; --hint: #555;
+    --green: #22c55e; --green-bg: rgba(34,197,94,0.12);
+    --amber: #f59e0b; --amber-bg: rgba(245,158,11,0.12);
+    --red: #ef4444; --red-bg: rgba(239,68,68,0.12);
+    --blue: #3b82f6; --blue-bg: rgba(59,130,246,0.12);
+    --radius: 14px; --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif; }
+  body { padding: env(safe-area-inset-top, 20px) 16px env(safe-area-inset-bottom, 32px); max-width: 430px; margin: 0 auto; }
+
+  .header { padding: 16px 0 14px; display: flex; justify-content: space-between; align-items: flex-end; }
+  .header-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+  .header-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .phase-badge { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 99px; background: var(--blue-bg); color: var(--blue); }
+
+  .sync-bar { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--hint); margin-bottom: 14px; }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--hint); flex-shrink: 0; }
+  .sync-dot.ok { background: var(--green); }
+  .sync-dot.loading { background: var(--amber); animation: pulse 1s infinite; }
+  .sync-dot.error { background: var(--red); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .status-bar { border-radius: var(--radius); padding: 14px 16px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; transition: background 0.3s; }
+  .status-bar.ok { background: var(--green-bg); border: 0.5px solid rgba(34,197,94,0.2); }
+  .status-bar.warn { background: var(--amber-bg); border: 0.5px solid rgba(245,158,11,0.2); }
+  .status-bar.danger { background: var(--red-bg); border: 0.5px solid rgba(239,68,68,0.25); }
+  .status-label { font-size: 13px; font-weight: 500; }
+  .status-bar.ok .status-label { color: var(--green); }
+  .status-bar.warn .status-label { color: var(--amber); }
+  .status-bar.danger .status-label { color: var(--red); }
+  .status-sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+  .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .metric { background: var(--surface); border-radius: var(--radius-sm); padding: 14px; border: 0.5px solid var(--border); }
+  .metric-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; }
+  .metric-value { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; line-height: 1; }
+  .metric-sub { font-size: 11px; color: var(--hint); margin-top: 4px; }
+  .metric.safe .metric-value { color: var(--green); }
+  .metric.warn .metric-value { color: var(--amber); }
+  .metric.danger .metric-value { color: var(--red); }
+  .metric.neutral .metric-value { color: var(--text); }
+  .metric.progress .metric-value { color: var(--blue); }
+
+  .card { background: var(--surface); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; border: 0.5px solid var(--border); }
+  .card-title { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 12px; }
+
+  .bar-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+  .bar-wrap { height: 8px; background: var(--surface2); border-radius: 99px; overflow: hidden; margin-bottom: 4px; }
+  .bar-fill { height: 100%; border-radius: 99px; transition: width 0.4s, background 0.3s; }
+  .bar-ticks { display: flex; justify-content: space-between; font-size: 10px; color: var(--hint); }
+
+  .checklist-row { display: flex; justify-content: space-between; align-items: center; padding: 11px 0; border-bottom: 0.5px solid var(--border); }
+  .checklist-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .checklist-label { font-size: 14px; color: var(--muted); }
+  .badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 99px; white-space: nowrap; }
+  .badge.ok { background: var(--green-bg); color: var(--green); }
+  .badge.warn { background: var(--amber-bg); color: var(--amber); }
+  .badge.danger { background: var(--red-bg); color: var(--red); }
+  .badge.info { background: var(--blue-bg); color: var(--blue); }
+
+  .inputs-card { background: var(--surface); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; border: 0.5px solid var(--border); }
+  .input-group { margin-bottom: 14px; }
+  .input-group:last-child { margin-bottom: 0; }
+  .input-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 7px; display: block; }
+  .input-row { display: flex; align-items: center; gap: 8px; }
+  .input-prefix { font-size: 18px; color: var(--hint); }
+  input[type=number], select, textarea {
+    background: var(--surface2); border: 0.5px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text); font-size: 17px; font-weight: 600; padding: 10px 14px;
+    width: 100%; outline: none; -webkit-appearance: none; appearance: none; font-family: inherit;
+  }
+  input[type=number]:focus, select:focus, textarea:focus { border-color: var(--blue); }
+  input.negative { color: var(--red); }
+  select { font-size: 15px; font-weight: 400; }
+  textarea { font-size: 14px; font-weight: 400; resize: none; height: 70px; }
+  .input-hint { font-size: 11px; color: var(--hint); margin-top: 5px; }
+
+  .days-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .day-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--surface2); border: 0.5px solid var(--border); color: var(--muted); font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .day-btn.active { background: var(--green-bg); border-color: rgba(34,197,94,0.3); color: var(--green); }
+
+  .divider { height: 0.5px; background: var(--border); margin: 16px 0; }
+  .rules-fixed { font-size: 12px; color: var(--hint); line-height: 1.7; }
+  .rules-fixed span { color: var(--muted); }
+
+  .section-header { font-size: 13px; font-weight: 600; color: var(--muted); margin: 20px 0 10px; text-transform: uppercase; letter-spacing: 0.6px; }
+
+  .action-btn { width: 100%; padding: 15px; border-radius: var(--radius-sm); font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; border: none; margin-bottom: 10px; transition: opacity 0.15s; }
+  .action-btn:active { opacity: 0.7; }
+  .btn-save { background: var(--blue); color: #fff; }
+  .btn-session { background: var(--green-bg); color: var(--green); border: 0.5px solid rgba(34,197,94,0.3); }
+  .btn-reset { background: var(--surface2); color: var(--muted); border: 0.5px solid var(--border); }
+
+  .toast { position: fixed; bottom: calc(env(safe-area-inset-bottom, 16px) + 16px); left: 50%; transform: translateX(-50%); background: var(--surface); border: 0.5px solid var(--border); border-radius: 99px; padding: 10px 20px; font-size: 13px; color: var(--text); white-space: nowrap; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 99; }
+  .toast.show { opacity: 1; }
+  .toast.success { border-color: rgba(34,197,94,0.4); color: var(--green); }
+  .toast.error { border-color: rgba(239,68,68,0.4); color: var(--red); }
+
+  .loading-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; align-items: center; justify-content: center; }
+  .loading-overlay.show { display: flex; }
+  .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">FP Tracker</div>
+    <div class="header-sub">2-Step Pro · $5,000</div>
+  </div>
+  <span class="phase-badge" id="phase-badge">Phase 1</span>
+</div>
+
+<div class="sync-bar">
+  <div class="sync-dot loading" id="sync-dot"></div>
+  <span id="sync-label">Conectando con Notion...</span>
+  <button onclick="cargarEstado()" style="margin-left:auto;background:none;border:none;color:var(--blue);font-size:12px;cursor:pointer;font-family:inherit;">↻ Actualizar</button>
+</div>
+
+<div class="status-bar ok" id="status-bar">
+  <div>
+    <div class="status-label" id="status-label">Cargando...</div>
+    <div class="status-sub" id="status-sub">Sincronizando con Notion</div>
+  </div>
+  <div style="font-size:22px" id="status-icon">⏳</div>
+</div>
+
+<div class="metrics-grid">
+  <div class="metric safe" id="m-daily">
+    <div class="metric-label">Daily restante</div>
+    <div class="metric-value" id="v-daily">$150</div>
+    <div class="metric-sub">límite: $150 (3%)</div>
+  </div>
+  <div class="metric safe" id="m-floor">
+    <div class="metric-label">Margen al floor</div>
+    <div class="metric-value" id="v-floor">$300</div>
+    <div class="metric-sub">floor fijo: $4,700</div>
+  </div>
+  <div class="metric progress" id="m-target">
+    <div class="metric-label">Objetivo</div>
+    <div class="metric-value" id="v-target">0.0%</div>
+    <div class="metric-sub">meta: $300 (6%)</div>
+  </div>
+  <div class="metric neutral" id="m-equity">
+    <div class="metric-label">Balance actual</div>
+    <div class="metric-value" id="v-equity">$5,000</div>
+    <div class="metric-sub" id="v-equity-sub">—</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Daily loss — uso del día</div>
+  <div class="bar-row"><span id="bar-daily-used">Pérdida: $0</span><span>Límite: $150</span></div>
+  <div class="bar-wrap"><div class="bar-fill" id="bar-daily" style="width:0%;background:var(--green)"></div></div>
+  <div class="bar-ticks"><span>0</span><span>50%</span><span>75%</span><span>100%</span></div>
+</div>
+
+<div class="card">
+  <div class="card-title">Max drawdown — consumo acumulado</div>
+  <div class="bar-row"><span id="bar-dd-used">Consumido: $0</span><span>Límite: $300</span></div>
+  <div class="bar-wrap"><div class="bar-fill" id="bar-dd" style="width:0%;background:var(--green)"></div></div>
+  <div class="bar-ticks"><span>0</span><span>50%</span><span>75%</span><span>100%</span></div>
+</div>
+
+<div class="card">
+  <div class="card-title">Progreso fase 1 — objetivo $300 (6%)</div>
+  <div class="bar-row"><span id="bar-target-used">Ganado: $0</span><span>Meta: $300</span></div>
+  <div class="bar-wrap"><div class="bar-fill" id="bar-target" style="width:0%;background:var(--blue)"></div></div>
+</div>
+
+<div class="card">
+  <div class="card-title">Checklist</div>
+  <div class="checklist-row"><span class="checklist-label">Daily loss</span><span class="badge ok" id="ck-daily">OK</span></div>
+  <div class="checklist-row"><span class="checklist-label">Por encima del floor</span><span class="badge ok" id="ck-floor">Seguro</span></div>
+  <div class="checklist-row"><span class="checklist-label">Días mínimos (3)</span><span class="badge warn" id="ck-days">0 / 3</span></div>
+  <div class="checklist-row"><span class="checklist-label">Objetivo fase 1</span><span class="badge warn" id="ck-target">Pendiente</span></div>
+  <div class="divider"></div>
+  <div class="rules-fixed">
+    <span>Drawdown:</span> Estático · floor fijo $4,700<br>
+    <span>Tiempo:</span> Sin límite · mín. 3 días<br>
+    <span>Noticias:</span> Sin restricción en evaluación
+  </div>
+</div>
+
+<div class="section-header">Actualizar sesión</div>
+
+<div class="inputs-card">
+  <div class="input-group">
+    <label class="input-label">P&L de hoy</label>
+    <div class="input-row">
+      <span class="input-prefix">$</span>
+      <input type="number" id="pnl-input" value="0" step="1" inputmode="decimal" oninput="calcularLocal()">
+    </div>
+    <div class="input-hint">Negativo si hay pérdida · positivo si hay ganancia</div>
+  </div>
+  <div class="input-group">
+    <label class="input-label">Días de trading completados</label>
+    <div class="days-row" id="days-row">
+      <div class="day-btn" onclick="toggleDay(1)" id="d1">1</div>
+      <div class="day-btn" onclick="toggleDay(2)" id="d2">2</div>
+      <div class="day-btn" onclick="toggleDay(3)" id="d3">3</div>
+      <div class="day-btn" onclick="toggleDay(4)" id="d4">4</div>
+      <div class="day-btn" onclick="toggleDay(5)" id="d5">5</div>
+      <div class="day-btn" onclick="toggleDay(6)" id="d6">6</div>
+      <div class="day-btn" onclick="toggleDay(7)" id="d7">7</div>
+    </div>
+  </div>
+</div>
+
+<div class="section-header">Cerrar sesión del día</div>
+
+<div class="inputs-card">
+  <div class="input-group">
+    <label class="input-label">Sesión mercado</label>
+    <select id="sesion-mercado">
+      <option value="London">London</option>
+      <option value="New York" selected>New York</option>
+      <option value="Asia">Asia</option>
+      <option value="London+NY">London + NY</option>
+    </select>
+  </div>
+  <div class="input-group">
+    <label class="input-label">Estado emocional</label>
+    <select id="estado-emocional">
+      <option value="Óptimo">Óptimo</option>
+      <option value="Normal" selected>Normal</option>
+      <option value="Estresado">Estresado</option>
+      <option value="FOMO">FOMO</option>
+      <option value="Revenge">Revenge</option>
+    </select>
+  </div>
+  <div class="input-group">
+    <label class="input-label">Nº operaciones hoy</label>
+    <input type="number" id="num-ops" value="0" min="0" step="1" inputmode="numeric">
+  </div>
+  <div class="input-group">
+    <label class="input-label">Trades ganados</label>
+    <input type="number" id="trades-ganados" value="0" min="0" step="1" inputmode="numeric">
+  </div>
+  <div class="input-group">
+    <label class="input-label">Notas de sesión</label>
+    <textarea id="notas-sesion" placeholder="Qué funcionó, qué mejorar..."></textarea>
+  </div>
+</div>
+
+<button class="action-btn btn-session" onclick="cerrarSesion()">Guardar sesión en Notion</button>
+<button class="action-btn btn-reset" onclick="resetLocal()">Resetear valores locales</button>
+
+<div class="toast" id="toast"></div>
+<div class="loading-overlay" id="loading"><div class="spinner"></div></div>
+
+<script>
+const WEBHOOK_LEER  = 'https://hook.eu1.make.com/j37yd2ax4ibnltm5pxgnnjrhdcjwyih8';
+const WEBHOOK_SESION = 'https://hook.eu1.make.com/f1l7hgxy5ucoavqy8fj6g1zbetws3f2h';
+
+const START = 5000, FLOOR = 4700, DAILY_LIM = 150, DD_LIM = 300, TARGET = 300, DAYS_MIN = 3;
+
+let state = {
+  balance: START,
+  dailyLoss: 0,
+  ddConsumed: 0,
+  objetivoGanado: 0,
+  diasCompletados: 0,
+  estado: 'En regla',
+  fase: 'Phase 1'
+};
+let days = 0;
+
+function fmt(n) { return '$' + Math.abs(Math.round(n)).toLocaleString('es-ES'); }
+function clamp(v,mn,mx) { return Math.min(mx, Math.max(mn, v)); }
+function pctOf(v, max) { return clamp((v / max) * 100, 0, 100); }
+function barColor(p) {
+  if (p >= 75) return 'var(--red)';
+  if (p >= 50) return 'var(--amber)';
+  return 'var(--green)';
+}
+
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+function setLoading(v) {
+  document.getElementById('loading').classList.toggle('show', v);
+}
+
+function setSyncState(status, label) {
+  const dot = document.getElementById('sync-dot');
+  dot.className = 'sync-dot ' + status;
+  document.getElementById('sync-label').textContent = label;
+}
+
+async function cargarEstado() {
+  setSyncState('loading', 'Conectando con Notion...');
+  try {
+    const res = await fetch(WEBHOOK_LEER, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({action:'read'}) });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const props = data.properties || {};
+    const getNum = (k) => props[k]?.number ?? 0;
+    const getSel = (k) => props[k]?.select?.name ?? '';
+    state.balance = getNum('Balance actual') || START;
+    state.dailyLoss = getNum('Daily loss hoy');
+    state.ddConsumed = getNum('Drawdown consumido');
+    state.objetivoGanado = getNum('Objetivo ganado');
+    state.diasCompletados = getNum('Días completados');
+    state.estado = getSel('Estado') || 'En regla';
+    state.fase = getSel('Fase') || 'Phase 1';
+    days = state.diasCompletados;
+    for (let i = 1; i <= 7; i++) document.getElementById('d'+i).classList.toggle('active', i <= days);
+    setSyncState('ok', 'Sincronizado · ' + new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'}));
+    renderUI();
+  } catch(e) {
+    setSyncState('error', 'Error de conexión — datos locales');
+    showToast('No se pudo conectar con Notion', 'error');
+    renderUI();
+  }
+}
+
+function calcularLocal() {
+  const pnl = parseFloat(document.getElementById('pnl-input').value) || 0;
+  document.getElementById('pnl-input').classList.toggle('negative', pnl < 0);
+  const equity = state.balance + pnl;
+  const dailyUsed = pnl < 0 ? Math.abs(pnl) : 0;
+  renderBars(equity, dailyUsed, Math.max(0, START - equity), Math.max(0, equity - START));
+}
+
+function toggleDay(n) {
+  days = (days === n) ? n - 1 : n;
+  for (let i = 1; i <= 7; i++) document.getElementById('d'+i).classList.toggle('active', i <= days);
+  renderUI();
+}
+
+function renderUI() {
+  const pnl = parseFloat(document.getElementById('pnl-input').value) || 0;
+  const equity = state.balance + pnl;
+  const dailyUsed = state.dailyLoss + (pnl < 0 ? Math.abs(pnl) : 0);
+  const dailyLeft = Math.max(0, DAILY_LIM - dailyUsed);
+  const ddConsumed = Math.max(0, START - equity);
+  const ddLeft = Math.max(0, equity - FLOOR);
+  const gained = Math.max(0, equity - START);
+  const targetPct = pctOf(gained, TARGET);
+  const dailyPct = pctOf(dailyUsed, DAILY_LIM);
+  const ddPct = pctOf(ddConsumed, DD_LIM);
+
+  document.getElementById('phase-badge').textContent = state.fase;
+  document.getElementById('v-daily').textContent = fmt(dailyLeft);
+  document.getElementById('m-daily').className = 'metric ' + (dailyPct >= 75 ? 'danger' : dailyPct >= 50 ? 'warn' : 'safe');
+  document.getElementById('v-floor').textContent = fmt(ddLeft);
+  document.getElementById('m-floor').className = 'metric ' + (ddPct >= 75 ? 'danger' : ddPct >= 50 ? 'warn' : 'safe');
+  document.getElementById('v-target').textContent = targetPct.toFixed(1) + '%';
+  document.getElementById('m-target').className = 'metric ' + (targetPct >= 100 ? 'safe' : 'progress');
+  document.getElementById('v-equity').textContent = '$' + Math.round(equity).toLocaleString('es-ES');
+  document.getElementById('v-equity-sub').textContent = (pnl >= 0 ? '+' : '') + Math.round(pnl).toLocaleString('es-ES') + '$ hoy';
+  document.getElementById('m-equity').className = 'metric ' + (pnl > 0 ? 'safe' : pnl < 0 ? 'warn' : 'neutral');
+
+  renderBars(equity, dailyUsed, ddConsumed, gained);
+
+  const ckDaily = document.getElementById('ck-daily');
+  if (dailyPct >= 100) { ckDaily.textContent = 'BREACH'; ckDaily.className = 'badge danger'; }
+  else if (dailyPct >= 75) { ckDaily.textContent = 'Parar ya'; ckDaily.className = 'badge danger'; }
+  else if (dailyPct >= 50) { ckDaily.textContent = 'Cuidado'; ckDaily.className = 'badge warn'; }
+  else { ckDaily.textContent = 'OK'; ckDaily.className = 'badge ok'; }
+
+  const ckFloor = document.getElementById('ck-floor');
+  if (equity <= FLOOR) { ckFloor.textContent = 'BLOWN'; ckFloor.className = 'badge danger'; }
+  else if (ddPct >= 75) { ckFloor.textContent = fmt(ddLeft) + ' · crítico'; ckFloor.className = 'badge danger'; }
+  else if (ddPct >= 50) { ckFloor.textContent = fmt(ddLeft) + ' · alerta'; ckFloor.className = 'badge warn'; }
+  else { ckFloor.textContent = fmt(equity) + ' · OK'; ckFloor.className = 'badge ok'; }
+
+  const ckDays = document.getElementById('ck-days');
+  ckDays.textContent = days + ' / ' + DAYS_MIN;
+  ckDays.className = 'badge ' + (days >= DAYS_MIN ? 'ok' : 'warn');
+
+  const ckTarget = document.getElementById('ck-target');
+  ckTarget.textContent = gained >= TARGET ? 'Completado' : fmt(gained) + ' / $300';
+  ckTarget.className = 'badge ' + (gained >= TARGET ? 'ok' : 'warn');
+
+  const sb = document.getElementById('status-bar');
+  const blown = equity <= FLOOR || dailyPct >= 100;
+  const critical = dailyPct >= 75 || ddPct >= 75;
+  const ready = gained >= TARGET && days >= DAYS_MIN && !blown;
+  if (blown) {
+    sb.className = 'status-bar danger';
+    document.getElementById('status-label').textContent = 'Cuenta violada';
+    document.getElementById('status-sub').textContent = 'Límite superado — detener operativa';
+    document.getElementById('status-icon').textContent = '🔴';
+  } else if (critical) {
+    sb.className = 'status-bar danger';
+    document.getElementById('status-label').textContent = 'Zona crítica';
+    document.getElementById('status-sub').textContent = 'Considera cerrar por hoy';
+    document.getElementById('status-icon').textContent = '🟠';
+  } else if (dailyPct >= 50 || ddPct >= 50) {
+    sb.className = 'status-bar warn';
+    document.getElementById('status-label').textContent = 'Alerta activa';
+    document.getElementById('status-sub').textContent = 'Margen ajustado — gestiona el riesgo';
+    document.getElementById('status-icon').textContent = '🟡';
+  } else if (ready) {
+    sb.className = 'status-bar ok';
+    document.getElementById('status-label').textContent = 'Lista para pasar';
+    document.getElementById('status-sub').textContent = 'Objetivo y días cumplidos';
+    document.getElementById('status-icon').textContent = '✅';
+  } else {
+    sb.className = 'status-bar ok';
+    document.getElementById('status-label').textContent = 'En regla';
+    document.getElementById('status-sub').textContent = 'Operativa dentro de los límites';
+    document.getElementById('status-icon').textContent = '🟢';
+  }
+}
+
+function renderBars(equity, dailyUsed, ddConsumed, gained) {
+  const dailyPct = pctOf(dailyUsed, DAILY_LIM);
+  const ddPct = pctOf(ddConsumed, DD_LIM);
+  const targetPct = pctOf(gained, TARGET);
+
+  document.getElementById('bar-daily-used').textContent = 'Pérdida: ' + fmt(dailyUsed);
+  const bd = document.getElementById('bar-daily');
+  bd.style.width = dailyPct.toFixed(1) + '%';
+  bd.style.background = barColor(dailyPct);
+
+  document.getElementById('bar-dd-used').textContent = 'Consumido: ' + fmt(ddConsumed);
+  const bdd = document.getElementById('bar-dd');
+  bdd.style.width = ddPct.toFixed(1) + '%';
+  bdd.style.background = barColor(ddPct);
+
+  document.getElementById('bar-target-used').textContent = 'Ganado: ' + fmt(gained);
+  const bt = document.getElementById('bar-target');
+  bt.style.width = targetPct.toFixed(1) + '%';
+  bt.style.background = targetPct >= 100 ? 'var(--green)' : 'var(--blue)';
+}
+
+async function cerrarSesion() {
+  setLoading(true);
+  const pnl = parseFloat(document.getElementById('pnl-input').value) || 0;
+  const equity = state.balance + pnl;
+  const dailyLossUsado = pnl < 0 ? Math.abs(pnl) : 0;
+  const ddConsumed = Math.max(0, START - equity);
+  const objetivoGanado = Math.max(0, equity - START);
+  const numOps = parseInt(document.getElementById('num-ops').value) || 0;
+  const tradesGanados = parseInt(document.getElementById('trades-ganados').value) || 0;
+  const estadoSesion = equity <= FLOOR ? 'Breach' : dailyLossUsado >= DAILY_LIM ? 'Breach' : dailyLossUsado >= DAILY_LIM * 0.75 ? 'Alerta' : 'En regla';
+  const today = new Date();
+  const fecha = today.toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit', year:'numeric'});
+
+  const payload = {
+    fecha,
+    balance_apertura: state.balance,
+    balance_cierre: equity,
+    daily_loss_usado: dailyLossUsado,
+    drawdown_consumido: ddConsumed,
+    objetivo_ganado: objetivoGanado,
+    num_operaciones: numOps,
+    trades_ganados: tradesGanados,
+    estado_sesion: estadoSesion,
+    sesion_mercado: document.getElementById('sesion-mercado').value,
+    estado_emocional: document.getElementById('estado-emocional').value,
+    dia_trading: numOps > 0,
+    dias_completados: days,
+    estado: estadoSesion === 'Breach' ? 'Violado' : dailyLossUsado >= DAILY_LIM * 0.75 ? 'Crítico' : dailyLossUsado >= DAILY_LIM * 0.5 ? 'Alerta' : 'En regla',
+    notas: document.getElementById('notas-sesion').value
+  };
+
+  try {
+    const res = await fetch(WEBHOOK_SESION, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    state.balance = equity;
+    state.dailyLoss = 0;
+    state.ddConsumed = ddConsumed;
+    state.objetivoGanado = objetivoGanado;
+    state.diasCompletados = days;
+    document.getElementById('pnl-input').value = 0;
+    document.getElementById('notas-sesion').value = '';
+    document.getElementById('num-ops').value = 0;
+    document.getElementById('trades-ganados').value = 0;
+    setSyncState('ok', 'Guardado · ' + new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'}));
+    showToast('Sesión guardada en Notion ✓', 'success');
+    renderUI();
+  } catch(e) {
+    showToast('Error al guardar — revisa Make', 'error');
+  } finally {
+    setLoading(false);
+  }
+}
+
+function resetLocal() {
+  document.getElementById('pnl-input').value = 0;
+  calcularLocal();
+  showToast('Valores locales reseteados');
+}
+
+cargarEstado();
+</script>
+</body>
+</html>
